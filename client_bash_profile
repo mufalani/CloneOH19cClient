@@ -1,0 +1,16 @@
+# .bash_profile
+
+if [ -f ~/.bashrc ]; then 
+  . ~/.bashrc 
+fi 
+
+# Oracle client variables 
+
+export TMP=/tmp 
+export TMPDIR=$TMP
+export ORACLE_BASE=/u01/app/oracle
+export ORACLE_HOME=/u01/app/oracle/product/19c/client
+export PATH=/usr/sbin:/usr/local/bin:$PATH
+export PATH=$ORACLE_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$ORACLE_HOME/lib:/lib:/usr/lib
+export CLASSPATH=$ORACLE_HOME/jlib:$ORACLE_HOME/rdbms/jlib

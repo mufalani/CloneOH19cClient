@@ -1,0 +1,111 @@
+---
+# Tasks for install Oracle client in Linux
+# Autor: Rodrigo Mufalani
+# Date: 27/10/2021
+# Laouc 
+
+  - name: Oracle client install on Linux
+    hosts: oel81
+    vars:
+        ora_base_dir: /u01/app/oracle 
+        ora_home_dir: /u01/app/oracle/product/19c/client
+        ora_inv_dir: /u01/app/oraInventory
+    tasks: 
+
+    # Installing packages
+      - name: Install packages list 1
+        yum:
+          name: bc, binutils, compat-openssl10, elfutils-libelf, glibc, glibc-devel, ksh, libaio, libXrender, libX11, libXau, libXi, libXtst
+          state: present 
+          disable_gpg_check: yes 
+
+    # Installing packages 
+      - name: Install packages list 2
+        yum:
+          name: libgcc, libnsl, libstdc++, libxcb, libibverbs, make, policycoreutils, policycoreutils-python-utils, smartmontools, sysstat   
+          state: present 
+          disable_gpg_check: yes 
+
+    # Create group dba 
+      - name:
+        group:
+          name: dba
+          state: present
+          gid: 54322
+          
+    # Create group oinstall 
+      - name:
+        group:
+          name: oinstall
+          state: present
+          gid: 54321
+    
+    # Create group oper 
+      - name:
+        group:
+          name: oper
+          state: present
+          gid: 54323
+
+    # Create user oracle 
+      - name:
+        user:
+          name: oracle
+          password: "{{ 'oracle' | password_hash('sha512') }}"
+          shell: /bin/sh
+          group: oinstall 
+          groups: oinstall, dba, oper 
+
+    # Create OH directory
+      - name:
+        file: 
+          path: "{{ ora_home_dir }}"
+          state: directory
+          owner: oracle
+          group: oinstall
+          mode: 0775
+
+    # Creating OraInv directory
+      - name:
+        file: 
+          path: "{{ ora_inv_dir }}"
+          state: directory
+          owner: oracle
+          group: oinstall
+          mode: 0775
+
+    # Copy .bash_profile to destination machine
+      - name:
+        copy: 
+          src: client_bash_profile
+          dest: /home/oracle/.bash_profile
+          owner: oracle
+          group: oinstall
+          mode: 0644
+
+    # Copy oracle installation to the client machine
+      - name:
+        become_user: oracle
+        unarchive: 
+          src: LINUX.X64_193000_client_home.zip  
+          dest: "{{ ora_home_dir }}"
+          copy: yes
+          owner: oracle
+          group: oinstall
+          mode: 0775
+
+    # Run installation 
+      - name: 
+        become_user: oracle
+        shell: "{{ ora_home_dir }}/perl/bin/perl {{ ora_home_dir }}/clone/bin/clone.pl -defaultHomeName ORACLE_BASE=\"{{ ora_base_dir }}\" ORACLE_HOME=\"{{ ora_home_dir }}\" OSDBA_GROUP=oinstall OSOPER_GROUP=dba"
+        environment: 
+          CV_ASSUME_DISTID: OEL7.8
+       # ignore_errors: true 
+ 
+    # Run orainstRoot.sh
+      - name: 
+        shell: "{{ ora_inv_dir }}/orainstRoot.sh"
+
+    # Run root.sh
+      - name: 
+        shell: "{{ ora_home_dir }}/root.sh"
